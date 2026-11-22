@@ -8,6 +8,7 @@ import android.system.OsConstants;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.RandomAccessFile;
+import java.lang.reflect.Method;
 import java.net.DatagramSocket;
 import java.net.Socket;
 
@@ -20,7 +21,15 @@ final class Raw {
 
     static void ttl(FileDescriptor fd, int t) { try { Os.setsockoptInt(fd, OsConstants.IPPROTO_IP, IP_TTL, t); } catch (Exception ignored) { } }
 
-    static int ttl(FileDescriptor fd) { try { return Os.getsockoptInt(fd, OsConstants.IPPROTO_IP, IP_TTL); } catch (Exception e) { return 64; } }
+    static int ttl(FileDescriptor fd) {
+        try {
+            Method m = Os.class.getMethod("getsockoptInt", FileDescriptor.class, int.class, int.class);
+            Object res = m.invoke(null, fd, OsConstants.IPPROTO_IP, IP_TTL);
+            return res != null ? (int) res : 64;
+        } catch (Exception e) {
+            return 64;
+        }
+    }
 
     /**
      * Sends `fake` (L bytes) with a low TTL straight from the page cache, then overwrites those pages with the
